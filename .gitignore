@@ -1,0 +1,7 @@
+venv/
+__pycache__/
+*.pyc
+qc_output/
+raw_lab_data.csv
+.vscode/
+.DS_Store
