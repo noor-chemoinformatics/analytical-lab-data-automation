@@ -1,127 +1,89 @@
 # Analytical Lab Data Automation
 
-A Python-based pipeline that automates quality control and data processing workflows in analytical chemistry laboratories. Designed to improve laboratory efficiency, standardise QC reporting, and support digitalisation of analytical data processes.
+A Python pipeline that automates quality control of analytical laboratory data.
+
+I built this to understand what it takes to automate a real analytical QC workflow: taking raw instrument measurements, cleaning them, applying standard QC rules, and producing a report that a lab analyst could actually use.
 
 ---
 
-## Why This Project
+## What it does
 
-Modern analytical laboratories — whether in cosmetics, pharmaceuticals, or materials science — generate large volumes of instrument data across multiple instruments, analysts, and batches.
+The pipeline takes a CSV of analytical measurements and runs six steps:
 
-Manual QC and data handling creates several problems:
+1. **Import** — load the file, standardise column names, parse dates
+2. **Clean** — remove duplicate sample IDs, handle missing replicates
+3. **Calculate QC metrics** — mean, standard deviation, RSD%, and recovery% for each sample
+4. **Flag issues** — using precision, accuracy, and Grubbs' test rules
+5. **Plot** — recovery distribution, RSD distribution, control chart, QC status by instrument
+6. **Report** — export an Excel workbook and a PNG dashboard
 
-- Repetitive manual processing of analytical results
-- Inconsistent application of acceptance criteria
-- Difficulty tracing data lineage and decisions
-- Limited scalability as sample volumes grow
-- Time spent on routine checks instead of scientific work
-
-This project demonstrates how a Python pipeline can automate these workflows end-to-end — from raw instrument export to structured QC report — while remaining transparent, reproducible, and easy to extend.
-
----
-
-## Alignment with Laboratory Digitalisation Goals
-
-This project directly addresses common objectives in analytical R&D and QC environments:
-
-| Laboratory need | How this project addresses it |
-|---|---|
-| Automate repetitive data processing | Full pipeline runs in one command |
-| Improve data reliability | Standardised QC rules and traceable outputs |
-| Reduce manual intervention | Automated import, cleaning, calculation, reporting |
-| Support analytical data interpretation | RSD%, recovery%, control charts |
-| Enable continuous improvement | Modular design, extendable to new instruments |
-| Interface with existing tools | CSV/Excel input, Excel/PNG output |
-| Reduce environmental impact of operations | Less paper, less manual processing, faster turnaround |
+It runs with one command and produces everything in a `qc_output/` folder.
 
 ---
 
-## Features
+## Why I built it
 
-### Data Handling
-- Automatic import of instrument export files (CSV/Excel)
-- Column standardisation and date parsing
-- Duplicate detection by sample ID
-- Missing-value detection and handling
+Analytical labs deal with large volumes of data every day. QC is critical but repetitive: check each sample against expected values, look at replicate agreement, spot outliers, and document the result.
 
-### Quality-Control Metrics
-- Mean and standard deviation across replicates
-- Relative standard deviation (RSD%) as precision indicator
-- Recovery percentage against expected concentration
-- Replicate count tracking
-
-### Statistical Analysis
-- Grubbs' test for outlier detection within replicates
-- Acceptance-criteria flagging:
-  - Precision: RSD% > 5%
-  - Accuracy: recovery outside 90–110%
-- Sample-level QC status (PASS / REVIEW)
-
-### Visualisation
-- Recovery distribution with acceptance limits
-- Precision (RSD%) distribution with threshold
-- Levey-Jennings control chart for recovery trends
-- Instrument-level QC status breakdown
-
-### Reporting
-- Structured Excel report (all results, flagged samples, summary)
-- PNG dashboard with 4 QC panels
-- Real-time console feedback
+Doing that manually for hundreds of samples is slow and easy to get wrong. I wanted to see how far a Python pipeline could go in automating that — while keeping the same QC logic that a chemist would use.
 
 ---
 
-## Pipeline Architecture
-Raw instrument data (CSV / Excel)
-|
-v
+## QC rules it applies
 
-DATA IMPORT ............... Column standardisation, date parsing
-|
-v
+These are standard rules used in analytical chemistry:
 
-DATA CLEANING ............. Deduplication, missing-value handling
-|
-v
+- **Precision:** RSD% must be ≤ 5% across replicates
+- **Accuracy:** recovery must fall between 90% and 110%
+- **Outlier detection:** Grubbs' test on triplicate measurements
 
-QC METRICS ................ Mean, SD, RSD%, recovery%
-|
-v
+If a sample fails any of these, it gets flagged **REVIEW**. Otherwise it's marked **PASS**.
 
-OUTLIER DETECTION ......... Grubbs' test, acceptance criteria
-|v
-
-VISUALISATION ............. Distributions, control charts, summaries
-|
-v
-
-AUTOMATED REPORT .......... Excel workbook + PNG dashboard + console
----
-
-## Quality-Control Rules
-
-| Rule | Threshold | Purpose |
-|---|---|---|
-| Precision | RSD% ≤ 5% | Repeatability across replicates |
-| Accuracy | Recovery 90–110% | Agreement with expected value |
-| Grubbs' test | G > G_crit (n=3, α=0.05) | Single-outlier detection |
-
-A sample is flagged **REVIEW** if any rule is violated; otherwise **PASS**.
-
-Thresholds are defined in the `detect_outliers()` method and can be adapted to specific laboratory SOPs.
+The thresholds are set in one place (`detect_outliers()` method) so they can be adjusted for different lab standards.
 
 ---
 
-## Installation
+## Test run
+
+I tested it on 200 simulated samples with deliberately injected quality issues: one duplicate, eight missing values, and around 5% outliers.
+
+The pipeline:
+
+- Removed 1 duplicate
+- Reported 8 missing values
+- Flagged 5 samples as REVIEW
+- Marked the remaining 195 as PASS
+- Reported mean recovery of 99.9% and mean RSD of 0.90%
+
+Output: a 4-panel dashboard and a 3-sheet Excel report.
+
+---
+
+## Outputs
+
+**`qc_output/qc_report.png`** — a 4-panel dashboard:
+- Recovery distribution with 90% and 110% acceptance lines
+- RSD% distribution with 5% threshold
+- Control chart of recovery across samples
+- QC status breakdown by instrument
+
+**`qc_output/qc_results.xlsx`** — three sheets:
+- **All Results** — full dataset with QC flags
+- **Flagged for Review** — only the samples that failed QC
+- **Summary** — pass/review counts, mean and max RSD, mean recovery
+
+---
+
+## How to run it
 
 ```bash
-# Clone the repository
-git clone https://github.com/noor-chemoinformatics/analytical-lab-data-automation.git
-cd analytical-lab-data-automation
-
-# Create and activate virtual environment
 python3 -m venv venv
-source venv/bin/activate        # Linux / macOS
-# venv\Scripts\activate         # Windows
+source venv/bin/activate
+pip install -r requirements.txt
 
-# Install dependencies
-pip install -r requirements.txt# 
+# Generate test data
+python generate_lab_data.py
+
+# Run the pipeline
+python lab_qc_pipeline.py
+
