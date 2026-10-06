@@ -109,7 +109,27 @@ A sample is flagged **REVIEW** if any rule is violated; otherwise **PASS**.
 
 Thresholds are defined in the `detect_outliers()` method and can be adapted to specific laboratory SOPs.
 
----
+## ML anomaly detection
+
+Alongside the rule-based QC checks, the pipeline runs an Isolation 
+Forest model on the same QC metrics (RSD%, recovery%, mean measured 
+value). The model learns what a "normal" QC profile looks like and 
+flags samples whose combination of metrics is unusual — even if no 
+single rule was violated.
+
+On the 200-sample test run:
+
+- 5 samples flagged by rules only
+- 5 samples flagged by both rules and ML
+- 5 samples flagged by ML only (missed by rule-based checks)
+- 185 samples cleared by both
+
+The Excel report includes a dedicated "ML-only Detections" sheet, 
+so reviewers can see which samples the classical rules would have 
+missed.
+
+This shows how ML complements rather than replaces classical QC 
+rules: rules catch known failure modes, ML catches unfamiliar ones.
 
 ## Installation
 
